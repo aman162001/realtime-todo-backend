@@ -1,0 +1,67 @@
+name: Deploy Node.js API to AWS Elastic Beanstalk
+
+on:
+  push:
+    branches:
+      - master  # Trigger deployment on push to main branch
+
+jobs:
+  deploy:
+    runs-on: [ubuntu-latest] # self-hosted
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Node.js environment
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'  # Specify your Node.js version
+
+      # Step 3: Install dependencies
+      - name: Install Dependencies
+        run: npm install
+
+      # Step 4: Run tests (optional but recommended)
+      #- name: Run Tests
+      #  run: npm test
+
+      # Step 5: Build the application (if applicable)
+      #- name: Build Application
+      #  run: npm run build  # Adjust based on your build script
+
+      # Step 6: Zip the application
+      - name: Zip Application
+        run: zip -r aman-app-todo.zip . -x "*.git*"
+
+      # Step 7: Configure AWS credentials
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Step 8: Upload to S3
+      - name: Upload to S3
+        run: |
+          aws s3 cp aman-app-todo.zip s3://${{ secrets.S3_BUCKET }}/aman-app-todo-${{ github.sha }}.zip
+      
+      - name: Print Application Name
+        run: |
+          echo "Deploying to application: ${{ secrets.EB_APPLICATION_NAME }}"
+          echo "Deploying to application: ${{ secrets.EB_ENVIRONMENT_NAME }}"
+
+      # Step 9: Deploy to Elastic Beanstalk
+      - name: Deploy to Elastic Beanstalk
+        run: |
+          aws elasticbeanstalk create-application-version \
+            --application-name ${{ secrets.EB_APPLICATION_NAME }} \
+            --version-label ${{ github.sha }} \
+            --source-bundle S3Bucket=${{ secrets.S3_BUCKET }},S3Key=aman-app-todo-${{ github.sha }}.zip
+
+          aws elasticbeanstalk update-environment \
+            --environment-name ${{ secrets.EB_ENVIRONMENT_NAME }} \
+            --version-label ${{ github.sha }}
