@@ -8,6 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: [ubuntu-latest] # self-hosted
+    environment: secrets
 
     steps:
       # Step 1: Checkout the repository
