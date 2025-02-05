@@ -43,7 +43,7 @@ rootSocket(io);
 
 /* ---API-Routes ---*/
 app.get("/", (req, res) => {
-  res.send("Todo backend");
+  res.json({message:"ok"});
 });
 app.use(authRouter);
 
